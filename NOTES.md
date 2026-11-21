@@ -64,3 +64,21 @@ Cold-start findings: warm passes take about 48 ms (TurboFan) or 57 ms (Maglev) f
 about 80 ms more; most of the remaining gap is the scavenger copying rows that stay live until JSON.stringify.
 `--max-opt=2` set through setFlagsFromString had no effect; `--no-turbofan` does. `--maglev` is set explicitly so a
 build with Maglev off does not drop to Sparkplug only.
+
+## Node 22 check in the grader's image (2026-11-21, lead)
+
+The agent tuned flags on Node 26 locally; the grader runs `node:22-slim` (22.23.4, digest from the kit's `grader/images.json`).
+Re-measured there: `docker run --network none --cpus=1 --memory=1g`, `TIMEFORMAT` user+sys of the whole `node /bot/main.ts`, 1 warm-up and
+9 timed rounds, trimmed mean of 5 (practice set, 6 cases).
+
+| variant | CPU ms |
+|---|---|
+| reference csv-reader 1.0.0 (house driver) | 1942 |
+| ours, `--maglev --no-turbofan --no-parallel-scavenge` (the agent's flags) | 654 |
+| ours, house flag only | 487 |
+| ours, house + `--min-semi-space-size=64` | 489 |
+| ours, house + `--single-threaded` | 485 |
+| ours, house + `--no-parallel-scavenge --single-threaded-gc` | 468 |
+| ours, house + `--single-threaded-gc` (kept) | 462, 465 |
+
+The Node 26 gain from Maglev did not carry over; the flag set is now the house flag plus `--single-threaded-gc`. Ratio against the reference: 0.24.

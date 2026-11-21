@@ -10,11 +10,10 @@ import { setFlagsFromString } from 'node:v8';
 // V8's incremental marking off, set before solve.js is imported so all of its work runs under it (the rules: the house
 // baseline runs with --no-incremental-marking, and an entry may tune V8's flags too).
 setFlagsFromString('--no-incremental-marking');
-// Measured on the practice set (NOTES.md): one cold pass gains more from Maglev's quick compile than from Turbofan's
-// faster code, and the scavenger copies the live rows cheaper on one thread.
-setFlagsFromString('--maglev');
-setFlagsFromString('--no-turbofan');
-setFlagsFromString('--no-parallel-scavenge');
+// Measured in the grader's own image (node:22-slim 22.23.4, 1 CPU, 1 GB, practice set, CPU of the whole process, NOTES.md):
+// GC helper threads only compete for the one CPU, so the collector runs on one thread. `--maglev --no-turbofan`, which
+// won on Node 26 locally, was slower here (654 ms against 487 ms with the house flag alone).
+setFlagsFromString('--single-threaded-gc');
 
 /** solve.js, imported by its URL (a .js module carries no types) and typed by its contract. */
 const { run } = (await import(new URL('./solve.js', import.meta.url).href)) as { run: (input: unknown) => unknown };
