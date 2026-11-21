@@ -40,8 +40,27 @@ unterminated_quote in two cases.
 
 ## Speed log
 
-CPU time = `process.cpuUsage()` user+system, 9 timed rounds after 1 warm-up, trimmed mean (2 fastest and 2 slowest
-dropped), on the practice set, `run` only unless marked. Local machine: M1 Air, Node 26 (the grader runs Node 22).
+`node test/bench.mjs [rounds] [impls] [flags...]`: every round is a fresh node process doing what main.ts does (house
+flag `--no-incremental-marking`, import, JSON.parse of cases.json, run on each case, JSON.stringify), because the
+grader starts every run cold. CPU = `process.cpuUsage()` user+system (all threads), 1 warm-up then 9 timed rounds,
+trimmed mean (2 fastest and 2 slowest dropped). "work" = parse+run+stringify, "run" = the run calls only. The
+reference is always timed with the house flag only, as the grader times it. Local machine: M1 Air under other load,
+Node 26.7 (the grader runs Node 22: flag effects there are not measured here).
 
-| change | solve.js ms | reference ms | ratio |
-|---|---|---|---|
+| # | change | solve work / run ms | reference work / run ms | ratio work / run |
+|---|---|---|---|---|
+| 1 | char-code loop, slices, one function | 404 / 281 | 999 / 820 | 0.405 / 0.343 |
+| 2 | prime run at import on tiny texts reaching every branch (no more deopt loops, 4 TurboFan compiles were 64 ms CPU) | 305 / 186 | 909 / 756 | 0.335 / 0.246 |
+| 3 | indexOf jumps with cached next comma, LF, CR | 292 / 173 | (same) | 0.32 / 0.23 |
+| 3b | same, main.ts `--no-turbofan` (Maglev top tier) | 234 / 110 | (house flag) | 0.26 / 0.15 |
+| - | tried: `new Array(width)` rows (holey) | +9 / +8 | | reverted |
+| - | tried: `--single-threaded-gc`, semi-space sizes, `--always-sparkplug`, Maglev budget | no gain or worse | | dropped |
+| - | tried: split(',') fast path for plain lines | not built: only 6 to 31% of the characters are on such lines | | |
+| 4 | main.ts `--maglev --no-turbofan --no-parallel-scavenge` (final) | 220 / 102 | 920 / 705 | 0.239 / 0.145 |
+
+Whole process (node start included): solve 278 ms, reference 978 ms (0.285).
+
+Cold-start findings: warm passes take about 48 ms (TurboFan) or 57 ms (Maglev) for the practice set, a cold process
+about 80 ms more; most of the remaining gap is the scavenger copying rows that stay live until JSON.stringify.
+`--max-opt=2` set through setFlagsFromString had no effect; `--no-turbofan` does. `--maglev` is set explicitly so a
+build with Maglev off does not drop to Sparkplug only.
