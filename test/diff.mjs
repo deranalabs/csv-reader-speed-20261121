@@ -66,7 +66,7 @@ console.log(`practice: ${cases.length} cases identical`);
 // 2. Hand-picked edge cases.
 const edges = ['', '﻿', '﻿a', 'a﻿', '\r', '\r\r', '\r\n', '\n\n', 'a\r', '\ra', '"', '""', '"""', '""""',
   '"a', 'a"', '"a"b', '"a"\r', '"a"\rb', '"a\r\nb"', '"a\rb"\nc', '"a"\r\n"b"', 'a,b\nc', 'a\nb,c,d', ',', ',,\n,',
-  '"a,""b', '"a""', 'x\n"y\nz', '\r\n\r\na', '\r\r\na', 'a,"b\r', '"\r"', 'a\n\r\nb', '"a" ,b', '﻿"a"'];
+  '"a,""b', '"a""', 'x\n"y\nz', '\r\n\r\na', '\r\r\na', 'a,"b\r', '"\r"', 'a\n\r\nb', '"a" ,b', '﻿"a"', 'a,"b"', 'a,b\n"c"', 'a,b\nc,"d"', '"a",'];
 let compared = 0;
 for (const text of edges) {
   for (const header of [false, true]) {
